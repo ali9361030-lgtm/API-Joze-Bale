@@ -726,12 +726,14 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="form-group">
-                    <label class="form-label">مدل هوش مصنوعی</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label class="form-label" style="margin-bottom: 0;">مدل هوش مصنوعی</label>
+                        <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 6px;" onclick="loadModelsList(true)" title="استعلام زنده مدل‌ها بر اساس کلیدها">🔄 بروزرسانی</button>
+                    </div>
                     <select class="form-select" id="projModel">
-                        <option value="Claude Sonnet 5.5">Claude Sonnet 5.5</option>
+                        <option value="Claude Sonnet 5.5">Claude Sonnet 5.5 (پیشنهادی)</option>
                         <option value="Claude Opus 5.5">Claude Opus 5.5</option>
                         <option value="Claude Haiku 5.5">Claude Haiku 5.5</option>
-                        <option value="Gemini Pro">Gemini Pro</option>
                     </select>
                 </div>
                 <div class="form-group">

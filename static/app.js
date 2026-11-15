@@ -83,7 +83,7 @@ function switchTab(tabId) {
         node.classList.toggle('active', ids[i] === tabId);
         node.setAttribute('aria-current', ids[i] === tabId ? 'page' : 'false');
     });
-    const loaders = {projects: loadProjects, providers: loadProviders, chunks: loadChunksList, outputs: loadOutputsList};
+    const loaders = {projects: () => { loadModelsList(); return loadProjects(); }, providers: loadProviders, chunks: loadChunksList, outputs: loadOutputsList};
     if (loaders[tabId]) loaders[tabId]().catch(reportError);
 }
 
@@ -153,6 +153,44 @@ async function latest(path) {
     const project = projectVersion;
     const data = await api(path);
     return requestVersions.get(path) === version && project === projectVersion ? data : null;
+}
+
+let availableModels = [];
+
+async function loadModelsList(force = false) {
+    try {
+        const url = force ? '/api/models?force=1' : '/api/models';
+        const data = await api(url);
+        if (data && Array.isArray(data.models)) {
+            availableModels = data.models;
+            renderModelOptions();
+            if (force) {
+                appendLog('info', `✅ لیست مدل‌ها بر اساس کلیدها به‌روزرسانی شد (${availableModels.length} مدل).`, new Date().toLocaleTimeString('fa-IR'));
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load models list:', e);
+    }
+}
+
+function renderModelOptions() {
+    const select = $('projModel');
+    if (!select) return;
+    const currentVal = select.value || (activeProject && activeProject.model) || 'Claude Sonnet 5.5';
+    select.replaceChildren();
+    
+    availableModels.forEach(m => {
+        const opt = element('option', '', m.name || m.id);
+        opt.value = m.id;
+        select.appendChild(opt);
+    });
+
+    if (currentVal && ![...select.options].some(o => o.value === currentVal)) {
+        const opt = element('option', '', currentVal);
+        opt.value = currentVal;
+        select.appendChild(opt);
+    }
+    select.value = currentVal;
 }
 
 async function loadProjects() {
@@ -391,6 +429,7 @@ function startMonitoring() {
 }
 window.addEventListener('DOMContentLoaded', () => {
     updateControls();
+    loadModelsList();
     startMonitoring();
     document.querySelectorAll('label.form-label').forEach(label => {
         const control = label.parentElement.querySelector('input, select, textarea');

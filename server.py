@@ -28,6 +28,7 @@ if BASE_DIR not in sys.path:
 
 from core.key_pool import KeyPool
 from core.runner import Runner
+from core.api_engine import fetch_available_models
 
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
@@ -340,6 +341,12 @@ class RequestHandler(SimpleHTTPRequestHandler):
                     data["error"] = GLOBAL_STATE.redact(str(exc))
                 data["recent_logs"] = GLOBAL_STATE.logs_history[-50:]
                 return self.send_json(data)
+        if path == "/api/models":
+            with GLOBAL_STATE.lock:
+                GLOBAL_STATE.check_config()
+                force = "force=1" in parsed.query
+                models = fetch_available_models(GLOBAL_STATE.providers, force=force)
+                return self.send_json({"models": models})
         if path == "/api/projects":
             with GLOBAL_STATE.lock:
                 GLOBAL_STATE.check_config()

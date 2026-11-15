@@ -22,35 +22,182 @@ EFFORT_BUDGET_TOKENS = {
 }
 
 MODEL_OPTIONS = {
+    # عناوین استاندارد و خودکار (تطبیق هوشمند با بهترین مدل فعال هر ارائه‌دهنده)
     "Claude Sonnet 5.5": "claude-sonnet-5-5",
     "Claude Opus 5.5": "claude-opus-5-5",
     "Claude Haiku 5.5": "claude-haiku-5-5",
+    "Claude 3.7 Sonnet": "claude-3-7-sonnet-20250219",
+    "Claude 3.5 Sonnet": "claude-3-5-sonnet-20241022",
+    # مدل‌های فعال اختصاصی Coarena AI
+    "GPT-6 Astra [Coarena]": "gpt-6-astra",
+    "GPT-6.1 Sol [Coarena]": "gpt-6-1-sol",
+    "GPT-6.1 Terra [Coarena]": "gpt-6-1-terra",
+    "Gemini 4 Argon [Coarena]": "gemini-4-argon",
+    "Gemini 4 Carbon [Coarena]": "gemini-4-carbon",
+    "Gemini 3.8 Flash [Coarena]": "gemini-3-8-flash",
+    "DeepSeek V4.1 Flash [Coarena]": "deepseek-v4-1-flash-1017",
+    "Kimi K3.1 Pro [Coarena]": "kimi-k3-1-pro",
+    "Grok 4.7 [Coarena]": "grok-4-7",
+    # مدل‌های کلیدی Radox و OpenRouter
+    "Claude Fable 5 [Radox]": "claude-fable-5",
     "Gemini Pro": "gemini-1.5-pro",
     "Gemini Flash": "gemini-1.5-flash",
+}
+
+COARENA_MODEL_MAPPINGS = {
+    "claude-sonnet-5-5": "gpt-6-astra",
+    "claude-3-7-sonnet-20250219": "gpt-6-astra",
+    "claude-3-5-sonnet-20241022": "gpt-6-astra",
+    "claude-fable-5-2": "gpt-6-astra",
+    "claude-fable-5-1": "gpt-6-astra",
+    "claude-fable-5": "gpt-6-astra",
+    "claude-opus-5-5": "gpt-6-1-sol",
+    "claude-3-opus-20240229": "gpt-6-1-sol",
+    "claude-haiku-5-5": "gemini-3-8-flash",
+    "claude-3-5-haiku-20241022": "gemini-3-8-flash",
+    "gemini-1.5-pro": "gemini-4-argon",
+    "gemini-pro": "gemini-4-argon",
+    "gemini-1.5-flash": "gemini-3-8-flash",
+    "gemini-flash": "gemini-3-8-flash",
 }
 
 PRICING_DEFAULTS = {
     "claude-sonnet-5-5": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
     "claude-opus-5-5": {"input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write": 18.75},
     "claude-haiku-5-5": {"input": 0.8, "output": 4.0, "cache_read": 0.08, "cache_write": 1.0},
+    "gpt-6-astra": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+    "gpt-6-1-sol": {"input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write": 18.75},
+    "gemini-4-argon": {"input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5},
+    "gemini-3-8-flash": {"input": 0.5, "output": 2.0, "cache_read": 0.05, "cache_write": 0.5},
+    "deepseek-v4-1-flash-1017": {"input": 0.3, "output": 1.2, "cache_read": 0.03, "cache_write": 0.3},
 }
+
+_MODELS_CACHE = {"ts": 0.0, "models": []}
 
 
 def resolve_model_id(display_or_id: str) -> str:
     val = (display_or_id or "").strip()
     if val in MODEL_OPTIONS:
         return MODEL_OPTIONS[val]
-    return val or "claude-sonnet-5-5"
+    raw = val.split(" [")[0].strip()
+    if raw in MODEL_OPTIONS:
+        return MODEL_OPTIONS[raw]
+    low = raw.lower()
+    for k, v in MODEL_OPTIONS.items():
+        if k.lower() == low or k.lower().startswith(low):
+            return v
+    return raw or "claude-sonnet-5-5"
 
 
 def map_model_for_provider(provider_name: str, model_id: str) -> str:
-    # Never silently substitute an older/different paid model.
-    if "openrouter" in (provider_name or "").lower() and "/" not in model_id:
-        if model_id.startswith("claude-"):
-            return "anthropic/" + model_id
-        if model_id.startswith("gemini-"):
-            return "google/" + model_id
-    return model_id
+    m = (model_id or "").strip()
+    pname = (provider_name or "").lower()
+
+    # ۱. نگاشت هوشمند مدل‌ها در Coarena AI (دقیقاً مشابه موتور پروکسی در Mix jozve)
+    if "coarena" in pname:
+        m_lower = m.lower()
+        if m_lower in COARENA_MODEL_MAPPINGS:
+            return COARENA_MODEL_MAPPINGS[m_lower]
+        clean_m = m_lower.replace("claude-", "")
+        if clean_m in COARENA_MODEL_MAPPINGS:
+            return COARENA_MODEL_MAPPINGS[clean_m]
+        return m
+
+    # ۲. نگاشت در OpenRouter
+    if "openrouter" in pname and "/" not in m:
+        if m.startswith("claude-"):
+            return "anthropic/" + m
+        if m.startswith("gemini-"):
+            return "google/" + m
+        if m.startswith("deepseek-"):
+            return "deepseek/" + m
+
+    # ۳. نگاشت در Radox AI
+    if "radox" in pname:
+        if m in ("claude-sonnet-5-5", "claude-opus-5-5"):
+            return "claude-fable-5"
+
+    return m
+
+
+def fetch_available_models(providers: list, force: bool = False) -> list:
+    """دریافت زنده و پویای تمام مدل‌های فعال بر اساس کلیدهای موجود در ارائه‌دهندگان."""
+    global _MODELS_CACHE
+    now = time.time()
+    if not force and _MODELS_CACHE["models"] and (now - _MODELS_CACHE["ts"] < 300):
+        return _MODELS_CACHE["models"]
+
+    models = []
+    seen = set()
+
+    def add_item(val, label=None):
+        if not val or val in seen:
+            return
+        seen.add(val)
+        models.append({"id": val, "name": label or val, "raw": val})
+
+    # ۱. مدل‌های پیش‌فرض و شاخص
+    add_item("Claude Sonnet 5.5", "Claude Sonnet 5.5 (پیشنهادی - هوشمند)")
+    add_item("Claude Opus 5.5", "Claude Opus 5.5 (تحلیل عمیق)")
+    add_item("Claude Haiku 5.5", "Claude Haiku 5.5 (سریع و سبک)")
+    add_item("Claude 3.7 Sonnet", "Claude 3.7 Sonnet")
+    add_item("Claude 3.5 Sonnet", "Claude 3.5 Sonnet")
+
+    # ۲. استعلام زنده از ارائه‌دهندگان فعال
+    for prov in providers:
+        if not prov.get("enabled", True):
+            continue
+        pname = prov.get("name", "")
+        base_url = (prov.get("base_url") or "").strip().rstrip("/")
+        keys = prov.get("keys", [])
+        active_key = next((k["key"] for k in keys if k.get("status") == "active" and k.get("key")), None)
+        if not active_key or not base_url or "127.0.0.1" in base_url:
+            continue
+
+        headers = {"Authorization": f"Bearer {active_key}", "x-api-key": active_key}
+        for ep in ("/v1/models", "/models"):
+            try:
+                r = requests.get(f"{base_url}{ep}", headers=headers, timeout=3.5)
+                if r.status_code == 200:
+                    d = r.json()
+                    raw_list = d.get("data") if isinstance(d.get("data"), list) else d.get("models") if isinstance(d.get("models"), list) else d if isinstance(d, list) else []
+                    for item in raw_list:
+                        if isinstance(item, dict):
+                            mid = item.get("id") or item.get("name")
+                            mname = item.get("display_name") or item.get("name") or mid
+                        elif isinstance(item, str):
+                            mid = item.strip()
+                            mname = mid
+                        else:
+                            continue
+                        if mid and mid not in seen:
+                            if "openrouter" in pname.lower():
+                                if not any(x in mid.lower() for x in ("claude", "gemini", "gpt", "deepseek", "qwen")):
+                                    continue
+                            disp = f"{mname} [{pname}]" if f"[{pname}]" not in mname else mname
+                            add_item(mid, disp)
+                    break
+            except Exception:
+                pass
+
+    # ۳. مدل‌های شناخته‌شده در صورت در دسترس نبودن اینترنت در لحظه استعلام
+    known_defaults = [
+        ("gpt-6-astra", "GPT-6 Astra [Coarena AI]"),
+        ("gpt-6-1-sol", "GPT-6.1 Sol [Coarena AI]"),
+        ("gemini-4-argon", "Gemini 4 Argon [Coarena AI]"),
+        ("gemini-3-8-flash", "Gemini 3.8 Flash [Coarena AI]"),
+        ("deepseek-v4-1-flash-1017", "DeepSeek V4.1 Flash [Coarena AI]"),
+        ("kimi-k3-1-pro", "Kimi K3.1 Pro [Coarena AI]"),
+        ("grok-4-7", "Grok 4.7 [Coarena AI]"),
+        ("claude-fable-5", "Claude Fable 5 [Radox AI]"),
+        ("anthropic/claude-3.7-sonnet", "Claude 3.7 Sonnet [OpenRouter]"),
+        ("google/gemini-pro-1.5", "Gemini 1.5 Pro [OpenRouter]"),
+    ]
+    for mid, disp in known_defaults:
+        add_item(mid, disp)
+
+    _MODELS_CACHE = {"ts": now, "models": models}
+    return models
 
 
 def build_messages_url(base_url: str) -> str:

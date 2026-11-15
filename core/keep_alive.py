@@ -86,45 +86,55 @@ class KeepAliveManager:
         self.stop_event.set()
 
     def _loop(self):
+        last_ping_time = 0.0
         while not self.stop_event.is_set():
             cfg = load_settings()
             space_url = (cfg.get("space_url") or "").strip().rstrip("/")
             token = (cfg.get("bale_bot_token") or "").strip()
             chat_id = (cfg.get("bale_chat_id") or "").strip()
-            interval_sec = max(60, int(cfg.get("keepalive_interval_minutes", 12)) * 60)
+            interval_sec = max(60, int(cfg.get("keepalive_interval_minutes", 10)) * 60)
+            now = time.time()
 
-            # ۱. پینگ به خود سرور جهت بیدار ماندن در سرور ابری Render
+            # ۱. پینگ دوره‌ای ضدخواب هر ۱۰ تا ۱۲ دقیقه یک‌بار
             if cfg.get("enable_keepalive") and space_url:
-                try:
-                    ping_target = f"{space_url}/api/ping"
-                    requests.get(ping_target, timeout=15)
-                except Exception:
-                    pass
+                if now - last_ping_time >= interval_sec:
+                    last_ping_time = now
+                    try:
+                        requests.get(f"{space_url}/api/ping", timeout=10)
+                    except Exception:
+                        pass
 
-            # ۲. بررسی دستورات دریافتی از ربات بله (Long Polling)
+            # ۲. دریافت و پاسخ آنی به دستورات ربات بله (Fast Long Polling)
             if token:
                 try:
                     self._check_bale_updates(token, chat_id)
                 except Exception:
-                    pass
-
-            # توقف به اندازه بازه مشخص با امکان خروج سریع
-            self.stop_event.wait(interval_sec)
+                    self.stop_event.wait(2)
+            else:
+                self.stop_event.wait(5)
 
     def _check_bale_updates(self, token: str, allowed_chat_id: str):
         url = f"{BALE_API_BASE}/bot{token}/getUpdates"
-        params = {"offset": self.bale_offset, "timeout": 2}
-        resp = requests.get(url, params=params, timeout=10)
-        if resp.status_code != 200:
+        # timeout=5 seconds allows Bale server to hold connection and respond instantly
+        params = {"offset": self.bale_offset, "timeout": 5}
+        try:
+            resp = requests.get(url, params=params, timeout=12)
+            if resp.status_code != 200:
+                self.stop_event.wait(2)
+                return
+            data = resp.json()
+        except Exception:
+            self.stop_event.wait(2)
             return
 
-        data = resp.json()
         updates = data.get("result", [])
         for u in updates:
             self.bale_offset = max(self.bale_offset, u.get("update_id", 0) + 1)
             msg = u.get("message", {})
             sender_id = str(msg.get("chat", {}).get("id", ""))
             text = (msg.get("text") or "").strip()
+            if not text:
+                continue
 
             # ثبت خودکار آیدی کاربر در صورت خالی بودن
             if not allowed_chat_id:
@@ -133,15 +143,15 @@ class KeepAliveManager:
                 save_settings(cfg)
                 allowed_chat_id = str(sender_id)
 
-            # پاسخ به دستورات کاربر
-            if text in ("/start", "/help", "راهنما"):
+            # پاسخ آنی به دستورات کاربر
+            if text in ("/start", "/help", "راهنما", "سلام"):
                 reply = (
-                    "👋 سلام! ربات هوشمند جزوه‌ساز اندروید (@mytetsbot) متصل شد.\n\n"
-                    "آیدی شما با موفقیت به عنوان مدیر ثبت گردید.\n\n"
-                    "دستورات:\n"
+                    "👋 سلام! ربات هوشمند جزوه‌ساز اندروید (@mytetsbot) فعال و آنلاین است.\n\n"
+                    "✅ اتصال شما با موفقیت به عنوان مدیر ثبت گردید.\n\n"
+                    "دستورات سریع:\n"
                     "📊 /status - مشاهده وضعیت پیشرفت زنده\n"
-                    "🏓 /ping - بیدارباش و تست سرور جزوه‌ساز\n\n"
-                    "🌐 آدرس پنل برنامه در گوشی:\n"
+                    "🏓 /ping - تست آنلاین بودن سرور جزوه‌ساز\n\n"
+                    "🌐 آدرس پنل در گوشی شما:\n"
                     "https://api-joze-bale-1.onrender.com\n\n"
                     "💡 فایل Word جزوه پس از پایان تولید، به طور خودکار همینجا برای شما ارسال خواهد شد."
                 )
