@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>جزوه‌ساز هوشمند اندروید (Mix API)</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#090d16">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- System fonts keep the local app usable offline without third-party requests. -->
+    <style>
+        :root {
+            --bg-dark: #070a12;
+            --bg-card: rgba(18, 24, 38, 0.75);
+            --bg-card-hover: rgba(26, 34, 52, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-active: rgba(56, 189, 248, 0.4);
+            --primary: #0284c7;
+            --primary-light: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.25);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --bottom-nav-h: 68px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: calc(var(--bottom-nav-h) + 16px);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(2, 132, 199, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Top Header */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(7, 10, 18, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-glass);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .brand-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        .brand-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-subtitle {
+            font-size: 0.72rem;
+            color: var(--primary-light);
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+        }
+
+        .pulse-dot.running {
+            background-color: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        /* Main Content Container */
+        .tab-content {
+            display: none;
+            padding: 16px;
+            max-width: 720px;
+            margin: 0 auto;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        /* Progress Bar */
+        .progress-box {
+            margin: 12px 0;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .progress-track {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            border-radius: 6px;
+            transition: width 0.4s ease;
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        /* Stat Grid */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .stat-val.done { color: var(--success); }
+        .stat-val.working { color: var(--primary-light); }
+        .stat-val.pending { color: var(--warning); }
+        .stat-val.failed { color: var(--danger); }
+
+        .stat-lbl {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        /* Action Buttons */
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #fff;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--text-main);
+            border: 1px solid var(--border-glass);
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: #fff;
+        }
+
+        /* Streaming Chunk Box */
+        .stream-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-active);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .stream-title {
+            font-size: 0.85rem;
+            color: var(--primary-light);
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stream-text {
+            font-size: 0.88rem;
+            line-height: 1.8;
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+        }
+
+        /* Console Terminal */
+        .terminal-box {
+            background: #04060a;
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 10px;
+            height: 160px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .log-entry.info { color: #38bdf8; }
+        .log-entry.success { color: #34d399; }
+        .log-entry.warning { color: #fbbf24; }
+        .log-entry.error { color: #f87171; }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--primary-light);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Lists (Providers, Keys, Chunks) */
+        .list-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .list-item-title {
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+
+        .list-item-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .badge-active { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-cooldown { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-dead { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--bottom-nav-h);
+            background: rgba(10, 14, 24, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            width: 20%;
+            height: 100%;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-item svg {
+            width: 22px;
+            height: 22px;
+            stroke-width: 2;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .nav-item.active {
+            color: var(--primary-light);
+        }
+
+        .nav-item.active svg {
+            stroke: var(--primary-light);
+            filter: drop-shadow(0 0 6px var(--primary-glow));
+        }
+
+        /* Modal Dialog */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-body {
+            background: #111827;
+            border-top: 1px solid var(--border-glass);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 720px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 20px;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        /* Switch Toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            transition: .3s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .3s;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        body { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 16px); }
+        .bottom-nav { height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px)); }
+        .nav-item { border: 0; background: none; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        :focus-visible { outline: 2px solid var(--primary-light); outline-offset: 3px; }
+        .list-item { gap: 12px; overflow-wrap: anywhere; }
+        .list-item > div { min-width: 0; }
+        .chunk-item { width: 100%; color: inherit; text-align: right; cursor: pointer; }
+        .error-banner { margin: 12px auto; padding: 12px; max-width: 688px; color: #fecaca; border: 1px solid var(--danger); border-radius: 10px; overflow-wrap: anywhere; }
+        #chunkModalArabic, #chunkModalPersian { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .modal-body { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+        .form-input, .form-select, .form-textarea { font-size: 16px; }
+        .modal-close { min-width: 44px; min-height: 44px; }
+        @media (max-width: 380px) {
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .app-header, .card-header, .progress-meta { flex-wrap: wrap; gap: 8px; }
+            .brand-title { font-size: .95rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="brand-badge">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+                <div class="brand-title">جزوه‌ساز اندروید</div>
+                <div class="brand-subtitle" id="topActiveProjectTitle">موتور هوشمند Mix API</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="status-pill">
+                <span class="pulse-dot" id="headerStatusDot"></span>
+                <span id="headerStatusText">آماده</span>
+            </div>
+        </div>
+    </header>
+
+    <div id="errorBanner" class="error-banner" role="alert" hidden></div>
+
+    <!-- Tab 1: Dashboard -->
+    <main class="tab-content active" id="tab-dashboard">
+        <!-- Progress Card -->
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">📊 وضعیت پیشرفت تولید</span>
+                <span style="font-size: 0.78rem; color: var(--primary-light); font-weight: 700;" id="txtPercent">۰٪</span>
+            </div>
+            <div class="progress-box">
+                <div class="progress-meta">
+                    <span id="txtProgressLabel">قطعات تکمیل‌شده: ۰ از ۰</span>
+                    <span id="txtCostToken">۰ توکن | $۰.۰۰۰۰</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar" id="mainProgressBar" role="progressbar" aria-label="درصد تکمیل" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                </div>
+            </div>
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-val done" id="statDone">۰</div>
+                    <div class="stat-lbl">انجام‌شده</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val working" id="statWorking">۰</div>
+                    <div class="stat-lbl">در حال پردازش</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val pending" id="statPending">۰</div>
+                    <div class="stat-lbl">در انتظار</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val failed" id="statFailed">۰</div>
+                    <div class="stat-lbl">ناموفق</div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnStart" disabled onclick="startGeneration()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    شروع تولید
+                </button>
+                <button class="btn btn-danger" id="btnStop" disabled onclick="stopGeneration()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+                    توقف
+                </button>
+                <button class="btn btn-secondary" data-idle-only onclick="retryFailedChunks()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    تلاش مجدد خطادارها
+                </button>
+                <button class="btn btn-accent" onclick="renderOutputs()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    ساخت خروجی نهایی
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Streaming Output Card -->
+        <div class="glass-card" id="streamCard" style="display: none;">
+            <div class="card-header">
+                <span class="card-title">⚡ خروجی زنده هوش مصنوعی</span>
+                <span class="badge badge-active" id="streamChunkBadge">قطعه ۱</span>
+            </div>
+            <div class="stream-box">
+                <div class="stream-title">✍️ در حال نوشتن تدریس...</div>
+                <div class="stream-text" id="streamTextContent">در انتظار پاسخ ارائه‌دهنده...</div>
+            </div>
+        </div>
+
+        <!-- Terminal Logs Card -->
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">📋 لاگ‌های عملیات سیستم</span>
+                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="clearLogs()">پاکسازی</button>
+            </div>
+            <div class="terminal-box" id="terminalLogs">
+                <div class="log-entry info">در حال بررسی اتصال به سرور محلی…</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Tab 2: Projects -->
+    <main class="tab-content" id="tab-projects">
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">📁 انتخاب پروژه فعال</span>
+                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;" data-idle-only onclick="openNewProjectModal()">+ پروژه جدید</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">پروژه جاری</label>
+                <select class="form-select" id="projectSelect" onchange="switchProject(this.value)">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">⚙️ مشخصات و تنظیمات پروژه</span>
+                <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.82rem;" data-idle-only onclick="saveCurrentProject()">ذخیره تغییرات</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">نام پروژه</label>
+                <input type="text" class="form-input" id="projTitle">
+            </div>
+            <div class="form-group">
+                <label class="form-label">عنوان جزوه در فایل Word و HTML</label>
+                <input type="text" class="form-input" id="projDocTitle">
+            </div>
+            <div class="form-group">
+                <label class="form-label">مسیر فایل ورودی یا متن (.docx / .txt)</label>
+                <input type="text" class="form-input" id="projInput" placeholder="مسیر فایل یا بارگذاری در زیر">
+            </div>
+            <div class="form-group">
+                <label class="form-label">بارگذاری مستقیم متن یا فایل در گوشی</label>
+                <input type="file" id="fileUploader" data-idle-only class="form-input" accept=".docx,.txt,.md" onchange="handleFileUpload(event)">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">اندازه هر قطعه (حرف)</label>
+                    <input type="number" class="form-input" id="projChunkSize" value="1800" min="1" step="1" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">تاخیر بین قطعات (ثانیه)</label>
+                    <input type="number" class="form-input" id="projDelay" value="2" step="0.5" min="0" inputmode="decimal">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">مدل هوش مصنوعی</label>
+                    <select class="form-select" id="projModel">
+                        <option value="Claude Sonnet 5.5">Claude Sonnet 5.5</option>
+                        <option value="Claude Opus 5.5">Claude Opus 5.5</option>
+                        <option value="Claude Haiku 5.5">Claude Haiku 5.5</option>
+                        <option value="Gemini Pro">Gemini Pro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">سطح تفکر (Thinking)</label>
+                    <select class="form-select" id="projEffort">
+                        <option value="medium">متوسط (پیشنهادی)</option>
+                        <option value="high">عمیق (High)</option>
+                        <option value="low">سریع (Low)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">پرامپت نقش و تدریس (System)</label>
+                <textarea class="form-textarea" id="projMainPrompt" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">قالب کانتکست قطعه قبل</label>
+                <textarea class="form-textarea" id="projContextPrompt" rows="3"></textarea>
+            </div>
+        </div>
+    </main>
+
+    <!-- Tab 3: Providers & Keys -->
+    <main class="tab-content" id="tab-providers">
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">🔑 ارائه‌دهندگان و کلیدهای API</span>
+                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;" data-idle-only onclick="openBulkKeysModal()">+ افزودن گروهی کلید</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                کلیدها از فایل <code style="color: var(--primary-light);">config/providers.json</code> بارگذاری می‌شوند و هیچ کلیدی هاردکد نیست.
+            </p>
+            <div id="providersListContainer">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Tab 4: Chunks / Ledger -->
+    <main class="tab-content" id="tab-chunks">
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">📑 دفترچه قطعات و وضعیت ریز</span>
+                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.78rem;" onclick="loadChunksList().catch(reportError)">بروزرسانی</button>
+            </div>
+            <div id="chunksListContainer">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Tab 5: Outputs & Reader -->
+    <main class="tab-content" id="tab-outputs">
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">📚 اسناد تولید شده و کتابخوان</span>
+                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.78rem;" onclick="loadOutputsList().catch(reportError)">بروزرسانی</button>
+            </div>
+            <div id="outputsListContainer">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button type="button" class="nav-item active" onclick="switchTab('dashboard')">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            داشبورد
+        </button>
+        <button type="button" class="nav-item" onclick="switchTab('projects')">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            پروژه‌ها
+        </button>
+        <button type="button" class="nav-item" onclick="switchTab('providers')">
+            <svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+            کلیدها
+        </button>
+        <button type="button" class="nav-item" onclick="switchTab('chunks')">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            قطعات
+        </button>
+        <button type="button" class="nav-item" onclick="switchTab('outputs')">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+            خروجی‌ها
+        </button>
+    </nav>
+
+    <!-- Modal: Bulk Add Keys -->
+    <div class="modal" id="bulkKeysModal" role="dialog" aria-modal="true" aria-label="افزودن کلیدها">
+        <div class="modal-body">
+            <div class="modal-header">
+                <span class="card-title">افزودن گروهی کلیدهای API</span>
+                <button class="modal-close" aria-label="بستن" onclick="closeBulkKeysModal()">✕</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">ارائه‌دهنده مقصد</label>
+                <select class="form-select" id="bulkProviderSelect" aria-label="ارائه‌دهندهٔ موجود">
+                    <option value="">ارائه‌دهندهٔ جدید…</option>
+                </select>
+                <input type="text" class="form-input" id="bulkProviderName" placeholder="نام ارائه‌دهندهٔ جدید" autocomplete="off" style="margin-top: 8px;">
+                <input type="url" class="form-input" id="bulkProviderUrl" placeholder="نشانی API پایه (مثلاً https://api.example/v1)" autocomplete="url" inputmode="url" style="margin-top: 8px;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">لیست کلیدها (هر کلید در یک خط، یا نام:کلید)</label>
+                <textarea class="form-textarea" id="bulkKeysInput" autocomplete="off" spellcheck="false" autocapitalize="off" rows="6" placeholder="coa_xxxx...&#10;کلید ۱:coa_yyyy..."></textarea>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" data-idle-only onclick="submitBulkKeys()">افزودن کلیدها</button>
+        </div>
+    </div>
+
+    <!-- Modal: Chunk Detail View -->
+    <div class="modal" id="chunkModal" role="dialog" aria-modal="true" aria-labelledby="chunkModalTitle">
+        <div class="modal-body">
+            <div class="modal-header">
+                <span class="card-title" id="chunkModalTitle">مشاهده جزئیات قطعه</span>
+                <button class="modal-close" aria-label="بستن" onclick="closeChunkModal()">✕</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">متن عربی مبدأ</label>
+                <div style="background: rgba(30, 27, 75, 0.4); padding: 12px; border-radius: 8px; font-family: 'Amiri', serif; font-size: 1.05rem; line-height: 1.8;" id="chunkModalArabic"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">تدریس فارسی تولید شده</label>
+                <div style="background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 8px; font-size: 0.95rem; line-height: 1.8; max-height: 250px; overflow-y: auto;" id="chunkModalPersian"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js" defer></script>
+</body>
+</html>

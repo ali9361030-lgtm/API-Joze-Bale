@@ -1,0 +1,20 @@
+{
+  "name": "جزوه‌ساز هوشمند اندروید",
+  "short_name": "جزوه‌ساز",
+  "description": "تولید خودکار جزوات آموزشی با هوش مصنوعی و API کلاد بر بستر موتور Mix",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "fa",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%230284c7'/><path d='M30 25 h40 a5 5 0 0 1 5 5 v40 a5 5 0 0 1 -5 5 h-40 a5 5 0 0 1 -5 -5 v-40 a5 5 0 0 1 5 -5 z' fill='%23ffffff'/><path d='M38 38 h24 M38 48 h24 M38 58 h16' stroke='%230284c7' stroke-width='4' stroke-linecap='round'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "OpenRouter",
+    "base_url": "https://openrouter.ai/api/v1",
+    "enabled": true,
+    "keys": []
+  },
+  {
+    "name": "Coarena AI",
+    "base_url": "https://coarena.ai/api",
+    "enabled": false,
+    "keys": []
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "space_url": "",
+  "enable_keepalive": true,
+  "keepalive_interval_minutes": 12,
+  "bale_bot_token": "557138530:NcixazutcFRJTSDf4OkXJMc7Ik1TjIcdsaY",
+  "bale_chat_id": "",
+  "enable_bale_notifications": true
+}

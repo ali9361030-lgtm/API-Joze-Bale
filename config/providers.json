@@ -1,0 +1,45 @@
+[
+  {
+    "name": "Coarena AI",
+    "base_url": "https://coarena.ai/api",
+    "enabled": true,
+    "keys": [
+      {"name": "coArena علی ۱۰۲۰۳۰", "key": "coa_64ff436acc62ff83a63b61ec045a4e21", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "coArena نی نیم", "key": "coa_d14e96d20f12824e9851d541ca8e1fad", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "coArena کتاب لیگ", "key": "coa_bd8a52d4c3289cdbe2334e46d6072ec2", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "coArena دای دیگ", "key": "coa_044ed376a3d20d51922c8d244384b396", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "coArena/sealsonik123", "key": "coa_634370d6c575c162d533d65f2c02658f", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "coArena Blackwood", "key": "coa_04e5e63c22004cdaa69184f8bac622a4", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "CoArena Shinowari", "key": "coa_db3fa92d1abd76a9f48140f00b82e6a3", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "CoArena Yaali", "key": "coa_c4ac1186bcee2ebba5354117a3e4c673", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "123seyyedali", "key": "coa_72c3f9daa60066fb036e2eb342b5d775", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "Pedareman", "key": "coa_7950f7e8deb3afdd50f99eb414a4a03d", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "Alikhor", "key": "coa_be680dcb14d9c5c9afff3cc39795c4af", "status": "active", "request_count": 0, "error_timestamp": null}
+    ]
+  },
+  {
+    "name": "OpenRouter",
+    "base_url": "https://openrouter.ai/api",
+    "enabled": true,
+    "keys": [
+      {"name": "اوپن روتر نی نیم", "key": "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", "status": "active", "request_count": 0, "error_timestamp": null}
+    ]
+  },
+  {
+    "name": "Radox AI",
+    "base_url": "https://radoxai.com",
+    "enabled": true,
+    "keys": [
+      {"name": "Radox AI اصلی", "key": "cc_UhEAGhwE0f6VQZ6nA8W6ArVvf8b7PiQKkOkKLqaxkXPTHLIW", "status": "active", "request_count": 0, "error_timestamp": null}
+    ]
+  },
+  {
+    "name": "Claude Proxy (کلاد پروکسی / سرور ابری)",
+    "base_url": "http://127.0.0.1:4000",
+    "enabled": false,
+    "keys": [
+      {"name": "کانال پروکسی ۱", "key": "claude-proxy-slot-1", "status": "active", "request_count": 0, "error_timestamp": null},
+      {"name": "کانال پروکسی ۲", "key": "claude-proxy-slot-2", "status": "active", "request_count": 0, "error_timestamp": null}
+    ]
+  }
+]

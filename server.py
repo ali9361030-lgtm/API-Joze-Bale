@@ -22,10 +22,13 @@ from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
 from core.key_pool import KeyPool
 from core.runner import Runner
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")

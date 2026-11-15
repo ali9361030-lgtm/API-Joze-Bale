@@ -1,0 +1,62 @@
+{
+  "active_project_id": "proj_1",
+  "projects": [
+    {
+      "id": "proj_1",
+      "title": "حلقه ثالثه و دروس خارج (شهید صدر)",
+      "doc_title": "دروس فی علم الأصول (الحلقة الثالثة)",
+      "main_prompt": "# نقش تو\nتو یک استاد مجرب، خوش‌بیان و فوق‌تخصصی «علم اصول فقه» و مشخصاً مکتب اصولی شهید سید محمدباقر صدر هستی.\n\n# هدف\nمتن عربی داخل تگ <current_text> را به فارسی کاملاً روان، داستان‌گونه، جامع (بدون خلاصه‌سازی یا حذف حتی یک استدلال) و با تشبیهات ملموس تدریس کن.\n- از سلام و احوالپرسی و تعارفات ابتدایی و انتهایی پرهیز کن.\n- الزام حیاتی: حتماً در آخرین سطر خروجی، فقط هشتگ #پایان را درج کن.",
+      "context_prompt": "<previous_context>\n- متن عربی قطعه‌ی قبلی:\n{PREVIOUS_ARABIC_TEXT}\n\n- آخرین تدریس فارسی تو (نمونه لحن و پیوستگی):\n{PREVIOUS_PERSIAN_OUTPUT}\n</previous_context>",
+      "context_mode": "tail_quarter",
+      "enable_context": true,
+      "input": "data/sample.docx",
+      "output": "outputs/حلقه_ثالثه_تدریس",
+      "chunk_size": 1800,
+      "delay": 2.0,
+      "max_tokens": 32000,
+      "model": "Claude Sonnet 5.5",
+      "effort": "medium",
+      "include_source_text": true,
+      "enable_headings": true,
+      "book_headings": ""
+    },
+    {
+      "id": "proj_2",
+      "title": "کفایه الاصول و مکاسب",
+      "doc_title": "کفایة الأصول",
+      "main_prompt": "# نقش تو\nتو یک مدرس باسابقه سطوح عالی حوزه علمیه هستی. متن کتاب (کفایه / مکاسب) را کلمه‌به‌کلمه باز کن، مرجع ضمایر را مشخص کن و زنجیره اشکالات و جواب‌ها (قوله، ان قلت، قلت) را با شماره‌گذاری روشن و روان تفهیم کن.\nالزام حیاتی: حتماً در آخرین خط پاسخ، فقط هشتگ #پایان را درج کن.",
+      "context_prompt": "<previous_context>\n- متن عربی قطعه‌ی قبلی:\n{PREVIOUS_ARABIC_TEXT}\n\n- آخرین تدریس فارسی تو (نمونه لحن و پیوستگی):\n{PREVIOUS_PERSIAN_OUTPUT}\n</previous_context>",
+      "context_mode": "tail_quarter",
+      "enable_context": true,
+      "input": "",
+      "output": "outputs/کفایه_الاصول_تدریس",
+      "chunk_size": 1800,
+      "delay": 2.0,
+      "max_tokens": 32000,
+      "model": "Claude Sonnet 5.5",
+      "effort": "medium",
+      "include_source_text": true,
+      "enable_headings": true,
+      "book_headings": ""
+    },
+    {
+      "id": "proj_3",
+      "title": "کتب عمومی و درسی",
+      "doc_title": "جزوه آموزشی",
+      "main_prompt": "# نقش تو\nتو یک استاد خوش‌بیان و نویسنده کتاب‌های آموزشی هستی. متن داخل <current_text> را به صورت کامل، روان، دقیق و جذاب به فارسی آموزش بده.\nالزام حیاتی: حتماً در آخرین خط پاسخ، فقط هشتگ #پایان را درج کن.",
+      "context_prompt": "<previous_context>\n- متن عربی قطعه‌ی قبلی:\n{PREVIOUS_ARABIC_TEXT}\n\n- آخرین تدریس فارسی تو (نمونه لحن و پیوستگی):\n{PREVIOUS_PERSIAN_OUTPUT}\n</previous_context>",
+      "context_mode": "tail_quarter",
+      "enable_context": true,
+      "input": "",
+      "output": "outputs/کتب_عمومی_تدریس",
+      "chunk_size": 1800,
+      "delay": 2.0,
+      "max_tokens": 32000,
+      "model": "Claude Sonnet 5.5",
+      "effort": "medium",
+      "include_source_text": true,
+      "enable_headings": true,
+      "book_headings": ""
+    }
+  ]
+}
