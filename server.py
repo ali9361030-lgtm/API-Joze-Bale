@@ -292,13 +292,13 @@ class RequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def check_origin(self):
-        # Deny cross-site requests AND DNS rebinding, including GETs containing secrets.
-        host = urllib.parse.urlsplit("http://" + self.headers.get("Host", ""))
-        if host.hostname not in ("localhost", "127.0.0.1", "::1") or host.port != self.server.server_port:
-            raise RequestError("دسترسی فقط از نشانی محلی برنامه مجاز است.", HTTPStatus.FORBIDDEN)
+        # Allow local access, Render, Hugging Face, and cloud domains while guarding against cross-site CSRF
+        host_header = self.headers.get("Host", "").strip()
         origin = self.headers.get("Origin")
-        if origin and origin != "http://" + self.headers.get("Host"):
-            raise RequestError("درخواست از مبدأ دیگر مجاز نیست.", HTTPStatus.FORBIDDEN)
+        if origin:
+            parsed_origin = urllib.parse.urlsplit(origin)
+            if parsed_origin.netloc != host_header and parsed_origin.hostname not in ("localhost", "127.0.0.1", "::1"):
+                raise RequestError("درخواست از مبدأ دیگر مجاز نیست.", HTTPStatus.FORBIDDEN)
         if self.headers.get("Sec-Fetch-Site") == "cross-site":
             raise RequestError("درخواست بین‌سایتی مجاز نیست.", HTTPStatus.FORBIDDEN)
 
@@ -641,7 +641,7 @@ def run_server(port=None, host=None):
     }
     GLOBAL_KEEPER.start()
     server = ThreadedHTTPServer((host, port), RequestHandler)
-    print(f"جزوه‌ساز اندروید (HF / Local): http://{host}:{server.server_port}")
+    print(f"Jozve Saz Android (Cloud / Local): http://{host}:{server.server_port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
