@@ -93,7 +93,7 @@ class KeepAliveManager:
             chat_id = (cfg.get("bale_chat_id") or "").strip()
             interval_sec = max(60, int(cfg.get("keepalive_interval_minutes", 12)) * 60)
 
-            # ۱. پینگ به خود سرور جهت بیدار ماندن در هاگینگ‌فیس
+            # ۱. پینگ به خود سرور جهت بیدار ماندن در سرور ابری Render
             if cfg.get("enable_keepalive") and space_url:
                 try:
                     ping_target = f"{space_url}/api/ping"
@@ -136,11 +136,13 @@ class KeepAliveManager:
             # پاسخ به دستورات کاربر
             if text in ("/start", "/help", "راهنما"):
                 reply = (
-                    "👋 سلام! ربات نگه‌دارنده جزوه‌ساز اندروید (@mytetsbot) متصل شد.\n\n"
-                    "آیدی شما با موفقیت به عنوان مدیر ثبت گردید.\n"
+                    "👋 سلام! ربات هوشمند جزوه‌ساز اندروید (@mytetsbot) متصل شد.\n\n"
+                    "آیدی شما با موفقیت به عنوان مدیر ثبت گردید.\n\n"
                     "دستورات:\n"
                     "📊 /status - مشاهده وضعیت پیشرفت زنده\n"
-                    "🏓 /ping - بیدارباش و تست سرور هاگینگ‌فیس\n\n"
+                    "🏓 /ping - بیدارباش و تست سرور جزوه‌ساز\n\n"
+                    "🌐 آدرس پنل برنامه در گوشی:\n"
+                    "https://api-joze-bale-1.onrender.com\n\n"
                     "💡 فایل Word جزوه پس از پایان تولید، به طور خودکار همینجا برای شما ارسال خواهد شد."
                 )
                 send_bale_message(token, sender_id, reply)
@@ -158,13 +160,14 @@ class KeepAliveManager:
                     st_text += f"- حالت: {'🚀 در حال کار' if is_run else '💤 آماده'}\n"
                     st_text += f"- پیشرفت: {pct}٪ (قطعه {done} از {tot})\n"
                     st_text += f"- خطاها: {fail}\n"
-                    st_text += f"- پروژه فعال: {st.get('active_project_title', 'تعیین نشده')}"
+                    st_text += f"- پروژه فعال: {st.get('active_project_title', 'تعیین نشده')}\n\n"
+                    st_text += "🌐 لینک پنل:\nhttps://api-joze-bale-1.onrender.com"
                 else:
                     st_text += "سرور فعال و آنلاین است."
                 send_bale_message(token, sender_id, st_text)
 
             elif text in ("/ping", "پینگ"):
-                send_bale_message(token, sender_id, "🏓 Pong! سرور هاگینگ‌فیس بیدار و کاملاً آماده است.")
+                send_bale_message(token, sender_id, "🏓 Pong! سرور جزوه‌ساز آنلاین و کاملاً آماده است.")
 
 
 GLOBAL_KEEPER = KeepAliveManager()

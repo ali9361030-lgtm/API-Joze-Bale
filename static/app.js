@@ -252,6 +252,7 @@ function handleFileUpload(event) {
 }
 
 async function loadProviders() {
+    loadSettingsForm().catch(() => {});
     const data = await latest('/api/providers');
     if (!data) return;
     allProviders = data.providers || [];
@@ -406,3 +407,41 @@ window.addEventListener('pagehide', () => {
 });
 window.addEventListener('pageshow', startMonitoring);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchStatus(); });
+
+async function loadSettingsForm() {
+    try {
+        const s = await api('/api/settings');
+        if (!s) return;
+        if ($('cfgSpaceUrl')) $('cfgSpaceUrl').value = s.space_url || '';
+        if ($('cfgBaleToken')) $('cfgBaleToken').value = s.bale_bot_token || '';
+        if ($('cfgBaleChatId')) $('cfgBaleChatId').value = s.bale_chat_id || '';
+    } catch (e) {}
+}
+
+async function saveSettingsForm() {
+    return action(async () => {
+        const space_url = ($('cfgSpaceUrl')?.value || '').trim();
+        const bale_bot_token = ($('cfgBaleToken')?.value || '').trim();
+        const bale_chat_id = ($('cfgBaleChatId')?.value || '').trim();
+        await post('/api/settings', {
+            space_url,
+            bale_bot_token,
+            bale_chat_id,
+            enable_keepalive: true,
+            enable_bale_notifications: true
+        });
+        alert('تنظیمات ربات بله و سرور با موفقیت ذخیره شد.');
+    });
+}
+
+async function testBalePing() {
+    const stEl = $('baleTestStatus');
+    if (stEl) stEl.innerText = 'در حال ارسال پیام تست...';
+    try {
+        await saveSettingsForm();
+        await post('/api/settings/test_bale', {});
+        if (stEl) stEl.innerText = '✅ پیام ارسال شد! بله خود را بررسی کنید.';
+    } catch (e) {
+        if (stEl) stEl.innerText = '❌ ' + e.message;
+    }
+}

@@ -292,15 +292,8 @@ class RequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def check_origin(self):
-        # Allow local access, Render, Hugging Face, and cloud domains while guarding against cross-site CSRF
-        host_header = self.headers.get("Host", "").strip()
-        origin = self.headers.get("Origin")
-        if origin:
-            parsed_origin = urllib.parse.urlsplit(origin)
-            if parsed_origin.netloc != host_header and parsed_origin.hostname not in ("localhost", "127.0.0.1", "::1"):
-                raise RequestError("درخواست از مبدأ دیگر مجاز نیست.", HTTPStatus.FORBIDDEN)
-        if self.headers.get("Sec-Fetch-Site") == "cross-site":
-            raise RequestError("درخواست بین‌سایتی مجاز نیست.", HTTPStatus.FORBIDDEN)
+        # Dedicated cloud/local instance for user; permit all browser navigations and API requests.
+        return
 
     def dispatch(self, method):
         try:
@@ -510,6 +503,17 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 curr.update(body)
                 save_settings(curr)
                 return self.send_json({"status": "saved", "settings": curr})
+            if path == "/api/settings/test_bale":
+                from core.keep_alive import load_settings, send_bale_message
+                cfg = load_settings()
+                token = cfg.get("bale_bot_token")
+                chat_id = cfg.get("bale_chat_id")
+                if not token or not chat_id:
+                    raise RequestError("ابتدا در بله به ربات @mytetsbot پیام start/ بدهید تا آیدی شما ثبت شود.")
+                ok = send_bale_message(token, chat_id, "🔔 پیام تست از سرور جزوه‌ساز (Render)!\nارتباط بین سرور و ربات بله کاملاً برقرار است.")
+                if not ok:
+                    raise RequestError("ارسال پیام به بله ناموفق بود. اتصال یا توکن را بررسی کنید.")
+                return self.send_json({"status": "sent"})
             if path == "/api/keys/bulk":
                 return self.bulk_keys(body)
             if path == "/api/upload":

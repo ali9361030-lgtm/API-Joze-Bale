@@ -768,6 +768,35 @@
                 <!-- Populated dynamically -->
             </div>
         </div>
+
+        <!-- Bale Bot & Server Settings Card -->
+        <div class="glass-card">
+            <div class="card-header">
+                <span class="card-title">🤖 تنظیمات ربات بله و سرور ابری (Anti-Sleep)</span>
+                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="saveSettingsForm()">ذخیره تنظیمات</button>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">
+                برای جلوگیری از خوابیدن سرور و دریافت خودکار فایل نهایی جزوه در بله:
+            </p>
+            <div class="form-group">
+                <label class="form-label">آدرس سرور ابری (جهت پینگ خودکار)</label>
+                <input type="url" class="form-input" id="cfgSpaceUrl" placeholder="https://api-joze-bale-1.onrender.com">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label class="form-label">توکن ربات بله (از BotFather@)</label>
+                    <input type="text" class="form-input" id="cfgBaleToken" placeholder="557138530:Ncixazutc...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">آیدی عددی چت بله (اختیاری)</label>
+                    <input type="text" class="form-input" id="cfgBaleChatId" placeholder="با زدن start/ خودکار ثبت می‌شود">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px;">
+                <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="testBalePing()">🔔 ارسال پیام تست به بله</button>
+                <span id="baleTestStatus" style="font-size: 0.78rem;"></span>
+            </div>
+        </div>
     </main>
 
     <!-- Tab 4: Chunks / Ledger -->
