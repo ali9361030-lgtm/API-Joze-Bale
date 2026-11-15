@@ -146,6 +146,16 @@ function renderOutputs() {
         switchTab('outputs');
     });
 }
+function resetProjectChunks() {
+    if (!confirm('آیا مطمئن هستید که می‌خواهید پروژه جاری را ریست کنید و پردازش از قطعه ۱ از ابتدا آغاز شود؟\n(نتایج قطعات قبلی آرشیو خواهد شد)')) return;
+    return action(async () => {
+        await post('/api/reset', {});
+        appendLog('warning', '⚠️ پروژه ریست شد. تمام قطعات مجدداً از قطعه ۱ آماده پردازش هستند.', new Date().toLocaleTimeString('fa-IR'));
+        $('streamCard').style.display = 'none';
+        $('streamTextContent').textContent = '';
+        await fetchStatus();
+    });
+}
 
 async function latest(path) {
     const version = (requestVersions.get(path) || 0) + 1;

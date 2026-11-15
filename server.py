@@ -460,7 +460,40 @@ class RequestHandler(SimpleHTTPRequestHandler):
         with GLOBAL_STATE.lock:
             state = GLOBAL_STATE
             state.check_config()
-            if path in ("/api/start", "/api/stop", "/api/retry_failed", "/api/render"):
+            if path in ("/api/start", "/api/stop", "/api/reset", "/api/retry_failed", "/api/render"):
+                if path == "/api/reset":
+                    if state.runner and state.runner.is_running:
+                        state.runner.stop()
+                        time.sleep(0.3)
+                    if state.runner:
+                        close = getattr(state.runner, "close", None) or getattr(state.runner.ledger, "close", None)
+                        if close:
+                            close()
+                        state.runner = None
+                    state.logs_history.clear()
+                    project = state.get_active_project()
+                    if not project:
+                        raise RequestError("ابتدا یک پروژه ایجاد کنید.", HTTPStatus.CONFLICT)
+                    candidate = Runner(copy.deepcopy(project), copy.deepcopy(state.providers), BASE_DIR, state.broadcast_event)
+                    if os.path.exists(candidate.ledger_path):
+                        try:
+                            archive_path = candidate.ledger_path + ".archive-" + time.strftime("%Y%m%d-%H%M%S") + ".db"
+                            shutil.copy2(candidate.ledger_path, archive_path)
+                            os.remove(candidate.ledger_path)
+                        except Exception:
+                            pass
+                    candidate.prepare()
+                    state.runner = candidate
+                    state.broadcast_event("status", {
+                        "is_running": False,
+                        "current_idx": 0,
+                        "streaming_text": "",
+                        "stats": candidate.ledger.get_stats(),
+                        "active_keys": candidate.key_pool.active_count(),
+                        "total_keys": candidate.key_pool.total_count()
+                    })
+                    return self.send_json({"status": "reset", "stats": candidate.ledger.get_stats()})
+
                 r = state.get_or_create_runner()
                 if path == "/api/start":
                     r.start()

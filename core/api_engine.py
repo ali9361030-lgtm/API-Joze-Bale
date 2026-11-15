@@ -117,6 +117,21 @@ def map_model_for_provider(provider_name: str, model_id: str) -> str:
         if m in ("claude-sonnet-5-5", "claude-opus-5-5"):
             return "claude-fable-5"
 
+    # ۴. نگاشت در ChatGPT / Xingchi API
+    if "xingchi" in pname or "chatgpt" in pname:
+        m_lower = m.lower()
+        if "astra" in m_lower or "sonnet" in m_lower:
+            return "gpt-6-astra"
+        if "sol" in m_lower or "opus" in m_lower:
+            return "gpt-6.1-sol"
+        if "haiku" in m_lower or "flash" in m_lower:
+            return "gpt-4o"
+        if m_lower in ("gpt-6.1 sol", "gpt-6.1-sol"):
+            return "gpt-6.1-sol"
+        if m_lower in ("gpt-6 astra", "gpt-6-astra"):
+            return "gpt-6-astra"
+        return m or "gpt-6-astra"
+
     return m
 
 
@@ -190,6 +205,9 @@ def fetch_available_models(providers: list, force: bool = False) -> list:
         ("kimi-k3-1-pro", "Kimi K3.1 Pro [Coarena AI]"),
         ("grok-4-7", "Grok 4.7 [Coarena AI]"),
         ("claude-fable-5", "Claude Fable 5 [Radox AI]"),
+        ("gpt-6.1-sol", "GPT-6.1 Sol [Xingchi API]"),
+        ("gpt-6-astra", "GPT-6 Astra [Xingchi API]"),
+        ("gpt-4o", "GPT-4o [Xingchi API]"),
         ("anthropic/claude-3.7-sonnet", "Claude 3.7 Sonnet [OpenRouter]"),
         ("google/gemini-pro-1.5", "Gemini 1.5 Pro [OpenRouter]"),
     ]
@@ -428,6 +446,8 @@ class ApiEngine:
                 model = map_model_for_provider(handle.provider, self.model_id)
                 endpoint_host = urlsplit(handle.base_url).hostname or ""
                 openai = ("openrouter" in handle.provider.lower() or "openrouter.ai" in endpoint_host.lower()
+                          or "xingchi" in handle.provider.lower() or "xingchi" in endpoint_host.lower()
+                          or "chatgpt" in handle.provider.lower()
                           or endpoint_host.lower() == "openai.com" or endpoint_host.lower().endswith(".openai.com"))
                 headers = {"Content-Type": "application/json", "Accept": "text/event-stream, application/json"}
                 if openai:
