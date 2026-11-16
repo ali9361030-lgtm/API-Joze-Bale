@@ -92,6 +92,8 @@ function switchTab(tabId) {
     if (loaders[tabId]) loaders[tabId]().catch(reportError);
 }
 
+let hasLoggedConnected = false;
+
 async function fetchStatus() {
     if (statusPending || mutationBusy) return;
     statusPending = true;
@@ -100,12 +102,20 @@ async function fetchStatus() {
         const data = await api('/api/status');
         if (version !== statusVersion) return;
         connected = true;
+        if (!hasLoggedConnected) {
+            hasLoggedConnected = true;
+            const initLog = $('initialLogEntry');
+            if (initLog) initLog.remove();
+            appendLog('success', '🟢 ارتباط با سرور ابری با موفقیت برقرار شد.', new Date().toLocaleTimeString('fa-IR'));
+        }
         updateDashboardUI(data);
     } catch (error) {
         if (version !== statusVersion) return;
         connected = false;
-        text('headerStatusText', 'وضعیت نامشخص');
+        text('headerStatusText', 'در حال تلاش برای اتصال…');
         $('headerStatusDot').className = 'pulse-dot';
+        const initLog = $('initialLogEntry');
+        if (initLog) initLog.textContent = '⏳ در حال برقراری ارتباط با سرور ابری (لطفاً کمی صبر کنید)...';
         reportError(error);
         updateControls();
     } finally { statusPending = false; }
@@ -120,7 +130,8 @@ function updateDashboardUI(data) {
     else if (data.ready === true) { $('errorBanner').hidden = true; }
     const stats = currentStatus.stats || {};
     const total = number(stats.total), done = number(stats.done);
-    text('headerStatusText', stopping || currentStatus.stop_requested ? 'در حال توقف' : currentStatus.is_running ? 'در حال کار' : currentStatus.ready === false ? 'نیازمند تنظیم منبع' : connected ? 'آماده' : 'وضعیت نامشخص');
+    const readyText = currentStatus.ready === false ? 'در انتظار فایل ورودی' : connected ? 'آماده تولید' : 'در حال اتصال…';
+    text('headerStatusText', stopping || currentStatus.stop_requested ? 'در حال توقف' : currentStatus.is_running ? 'در حال پردازش' : readyText);
     $('headerStatusDot').className = `pulse-dot${currentStatus.is_running ? ' running' : ''}`;
     text('topActiveProjectTitle', currentStatus.active_project?.title || 'موتور هوشمند Mix API');
     text('statDone', done);
@@ -552,6 +563,7 @@ function startMonitoring() {
 }
 window.addEventListener('DOMContentLoaded', () => {
     updateControls();
+    loadProjects();
     loadModelsList();
     startMonitoring();
     document.querySelectorAll('label.form-label').forEach(label => {
@@ -566,7 +578,16 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
     document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeChunkModal(); closeBulkKeysModal(); } });
-    if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (const reg of registrations) reg.unregister();
+        }).catch(() => {});
+        if (window.caches) {
+            caches.keys().then(names => {
+                for (const name of names) caches.delete(name);
+            }).catch(() => {});
+        }
+    }
 });
 window.addEventListener('pagehide', () => {
     if (eventSource) eventSource.close();

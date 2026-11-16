@@ -343,7 +343,13 @@ class RequestHandler(SimpleHTTPRequestHandler):
                     r = GLOBAL_STATE.get_or_create_runner()
                     data.update(ready=True, is_running=r.is_running, current_idx=r.current_chunk_idx, streaming_text=r.current_streaming_text, stats=r.ledger.get_stats(), active_keys=r.key_pool.active_count(), total_keys=r.key_pool.total_count())
                 except (ValueError, OSError) as exc:
-                    data["error"] = GLOBAL_STATE.redact(str(exc))
+                    err_msg = str(exc)
+                    if "Select an input document" in err_msg or not (data.get("active_project", {}).get("input") or "").strip():
+                        data["error"] = "لطفاً در زبانه «پروژه‌ها» فایل یا متن ورودی خود را انتخاب یا بارگذاری کنید."
+                    elif "Input document not found" in err_msg:
+                        data["error"] = "فایل ورودی تعیین‌شده یافت نشد؛ لطفاً در زبانه پروژه‌ها فایل را مجدداً بارگذاری کنید."
+                    else:
+                        data["error"] = GLOBAL_STATE.redact(err_msg)
                 data["recent_logs"] = GLOBAL_STATE.logs_history[-50:]
                 return self.send_json(data)
         if path == "/api/models":
