@@ -38,11 +38,22 @@ def _pieces(text, size):
         yield text
 
 
-def _chunk_paragraphs(paragraphs, chunk_size, user_headings=None):
+def _chunk_paragraphs(paragraphs, chunk_size=1300, user_headings=None, single_chunk=False):
     chunk_size = int(chunk_size)
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
-    headings = set(user_headings or [])
+    headings = list(user_headings or [])
+
+    if single_chunk:
+        clean_paras = [clean_arabic_text(raw) for raw in paragraphs]
+        clean_paras = [p for p in clean_paras if p]
+        if not clean_paras:
+            return []
+        full_text = "\n\n".join(clean_paras)
+        heading = headings[0] if headings else None
+        return [{"idx": 0, "heading": heading, "arabic_text": full_text}]
+
+    headings_set = set(headings)
     chunks, current = [], ""
     heading = None
 
@@ -56,7 +67,7 @@ def _chunk_paragraphs(paragraphs, chunk_size, user_headings=None):
         text = clean_arabic_text(raw)
         if not text:
             continue
-        is_heading = text in headings or (len(text) < 100 and "\n" not in text and
+        is_heading = text in headings_set or (len(text) < 100 and "\n" not in text and
             re.match(r"^(?:#{1,6}\s*|(?:الفصل|المبحث|المطلب|درس|فصل|باب)(?:\s|$))", text))
         if is_heading:
             flush()
@@ -70,7 +81,7 @@ def _chunk_paragraphs(paragraphs, chunk_size, user_headings=None):
     return chunks
 
 
-def slice_docx(doc_path: str, chunk_size: int = 1800, user_headings=None):
+def slice_docx(doc_path: str, chunk_size: int = 1300, user_headings=None, single_chunk: bool = False):
     from docx import Document
     from docx.oxml.ns import qn
     from docx.table import Table
@@ -93,32 +104,32 @@ def slice_docx(doc_path: str, chunk_size: int = 1800, user_headings=None):
                         seen.add(cell._tc)
                         cells.append(cell.text)
                 paragraphs.append(" | ".join(cells))
-    return _chunk_paragraphs(paragraphs, chunk_size, headings)
+    return _chunk_paragraphs(paragraphs, chunk_size, headings, single_chunk=single_chunk)
 
 
-def slice_text_file(text_path: str, chunk_size: int = 1800):
+def slice_text_file(text_path: str, chunk_size: int = 1300, single_chunk: bool = False):
     with open(text_path, "r", encoding="utf-8-sig") as stream:
-        return slice_raw_text(stream.read(), chunk_size)
+        return slice_raw_text(stream.read(), chunk_size, single_chunk=single_chunk)
 
 
-def slice_raw_text(raw_text: str, chunk_size: int = 1800):
+def slice_raw_text(raw_text: str, chunk_size: int = 1300, single_chunk: bool = False):
     text = clean_arabic_text(raw_text)
-    return _chunk_paragraphs(text.split("\n"), chunk_size)
+    return _chunk_paragraphs(text.split("\n"), chunk_size, single_chunk=single_chunk)
 
 
-def build_chunks_from_source(source_path: str, chunk_size: int = 1800, user_headings=None):
+def build_chunks_from_source(source_path: str, chunk_size: int = 1300, user_headings=None, single_chunk: bool = False):
     if not os.path.exists(source_path):
         raise FileNotFoundError("Input document not found: " + source_path)
     if not os.path.isfile(source_path):
         raise ValueError("Input must be a text, Markdown or Word file (images require OCR)")
     ext = os.path.splitext(source_path)[1].lower()
     if ext == ".docx":
-        chunks = slice_docx(source_path, chunk_size, user_headings)
+        chunks = slice_docx(source_path, chunk_size, user_headings, single_chunk=single_chunk)
     elif ext in (".txt", ".md", ".markdown"):
-        chunks = slice_text_file(source_path, chunk_size)
+        chunks = slice_text_file(source_path, chunk_size, single_chunk=single_chunk)
     else:
         raise ValueError("Unsupported input format; use .txt, .md or .docx")
     if not chunks:
         raise ValueError("Input document contains no usable text")
     return chunks, {"source_path": os.path.abspath(source_path), "chunk_size": chunk_size,
-                    "total_chunks": len(chunks)}
+                    "total_chunks": len(chunks), "single_chunk": single_chunk}

@@ -8,6 +8,7 @@ import json
 import math
 import os
 import queue
+import re
 import shutil
 import sqlite3
 import sys
@@ -82,7 +83,7 @@ def validate_project(project):
     for field in ("input", "output", "doc_title", "main_prompt", "context_prompt", "model", "book_headings"):
         if field in result and not isinstance(result[field], str):
             raise RequestError(f"مقدار {field} باید متن باشد.")
-    for field, default, low, high in (("chunk_size", 1800, 1, 1000000), ("max_tokens", 32000, 1, 128000), ("delay", 2, 0, 3600)):
+    for field, default, low, high in (("chunk_size", 1300, 1, 1000000), ("max_tokens", 32000, 1, 128000), ("delay", 2, 0, 3600)):
         value = result.get(field, default)
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
             raise RequestError(f"مقدار {field} باید بین {low} و {high} باشد.")
@@ -91,13 +92,17 @@ def validate_project(project):
         result[field] = value if field == "delay" else int(value)
     if result.get("effort", "medium") not in ("low", "medium", "high"):
         raise RequestError("سطح تفکر نامعتبر است.")
-    for field in ("enable_context", "include_source_text", "enable_headings"):
+    for field in ("enable_context", "include_source_text", "enable_headings", "single_chunk"):
         if field in result and not isinstance(result[field], bool):
             raise RequestError(f"مقدار {field} باید روشن یا خاموش باشد.")
-    output = result.get("output") or "outputs/" + hashlib.sha256(result["id"].encode()).hexdigest()[:16]
+    title = (result.get("title") or result.get("doc_title") or "").strip()
+    safe_title = re.sub(r'[\\/*?:"<>|]', '_', title).strip() or "جزوه"
+    output = (result.get("output") or "").strip()
+    if not output or "project-" in output or re.match(r"^outputs/[0-9a-f]{12,64}$", output):
+        output = f"outputs/{safe_title}"
     resolved = contained_path(OUTPUTS_DIR, os.path.join(BASE_DIR, output))
     if resolved == os.path.realpath(OUTPUTS_DIR):
-        raise RequestError("نام فایل خروجی را مشخص کنید.")
+        resolved = os.path.join(os.path.realpath(OUTPUTS_DIR), safe_title)
     result["output"] = os.path.relpath(resolved, BASE_DIR).replace(os.sep, "/")
     return result
 
@@ -521,7 +526,8 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 project = validate_project(body.get("project"))
                 for other in state.projects:
                     if other["id"] != project["id"] and os.path.normcase(os.path.abspath(os.path.join(BASE_DIR, other["output"]))) == os.path.normcase(os.path.abspath(os.path.join(BASE_DIR, project["output"]))):
-                        raise RequestError("هر پروژه باید نام خروجی مستقل داشته باشد.")
+                        project["output"] = f"{project['output']}_{project['id'][-4:]}"
+                        break
                 state.projects = [project if p["id"] == project["id"] else p for p in state.projects] if any(p["id"] == project["id"] for p in state.projects) else state.projects + [project]
                 if not state.active_project_id:
                     state.active_project_id = project["id"]

@@ -76,6 +76,11 @@ async function action(task) {
 }
 
 function switchTab(tabId) {
+    if (activeProject && activeProject.id && autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+        saveCurrentProject(true);
+    }
     const ids = ['dashboard', 'projects', 'providers', 'chunks', 'outputs'];
     if (!ids.includes(tabId)) return;
     document.querySelectorAll('.tab-content').forEach(node => node.classList.toggle('active', node.id === `tab-${tabId}`));
@@ -135,7 +140,14 @@ function updateDashboardUI(data) {
     updateControls();
 }
 
-function startGeneration() { return action(async () => { await post('/api/start'); }); }
+function startGeneration() {
+    return action(async () => {
+        if (activeProject && activeProject.id && $('projTitle')) {
+            await saveCurrentProject(true);
+        }
+        await post('/api/start');
+    });
+}
 function stopGeneration() { return action(async () => { const result = await post('/api/stop'); stopping = result.status === 'stopping'; }); }
 function retryFailedChunks() { return action(async () => { await post('/api/retry_failed'); }); }
 function renderOutputs() {
@@ -218,10 +230,54 @@ async function loadProjects() {
     select.value = activeProject.id || '';
     fillProjectForm(activeProject);
 }
+function sanitizeFilename(name) {
+    return (name || '').replace(/[\\/*?:"<>|]/g, '_').trim() || 'جزوه';
+}
+
+function toggleSingleChunkMode(isSingle) {
+    const input = $('projChunkSize');
+    if (!input) return;
+    if (isSingle) {
+        input.disabled = true;
+        input.dataset.prevVal = input.value || '1300';
+        input.value = '1000000';
+    } else {
+        input.disabled = false;
+        input.value = (input.dataset.prevVal && input.dataset.prevVal !== '1000000') ? input.dataset.prevVal : '1300';
+    }
+    triggerAutoSave();
+}
+
+let autoSaveTimer = null;
+function triggerAutoSave() {
+    if (!activeProject || !activeProject.id || currentStatus.is_running) return;
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        saveCurrentProject(true);
+    }, 900);
+}
+
 function fillProjectForm(project) {
-    for (const [id, value] of Object.entries({projTitle: project.title, projDocTitle: project.doc_title, projInput: project.input,
-        projChunkSize: project.chunk_size ?? 1800, projDelay: project.delay ?? 2,
-        projMainPrompt: project.main_prompt, projContextPrompt: project.context_prompt})) $(id).value = value ?? '';
+    for (const [id, value] of Object.entries({
+        projTitle: project.title,
+        projDocTitle: project.doc_title,
+        projInput: project.input,
+        projChunkSize: project.chunk_size ?? 1300,
+        projDelay: project.delay ?? 2,
+        projMainPrompt: project.main_prompt,
+        projContextPrompt: project.context_prompt
+    })) {
+        const el = $(id);
+        if (el) el.value = value ?? '';
+    }
+
+    const isSingle = Boolean(project.single_chunk);
+    if ($('projSingleChunk')) $('projSingleChunk').checked = isSingle;
+    if ($('projChunkSize')) {
+        $('projChunkSize').disabled = isSingle;
+        if (isSingle) $('projChunkSize').dataset.prevVal = '1300';
+    }
+
     const model = project.model || 'Claude Sonnet 5.5';
     if (![...$('projModel').options].some(option => option.value === model)) {
         const option = element('option', '', model); option.value = model; $('projModel').appendChild(option);
@@ -229,7 +285,13 @@ function fillProjectForm(project) {
     $('projModel').value = model;
     $('projEffort').value = project.effort || 'medium';
 }
+
 function switchProject(id) {
+    if (activeProject && activeProject.id && autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+        saveCurrentProject(true);
+    }
     return action(async () => {
         try {
             await post('/api/projects/switch', {id});
@@ -243,32 +305,83 @@ function switchProject(id) {
         }
     });
 }
+
 function openNewProjectModal() {
     if (currentStatus.is_running || mutationBusy) return;
-    // A draft is not persisted until Save; no hidden server side effects.
     const id = globalThis.crypto?.randomUUID ? crypto.randomUUID() : `project-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    activeProject = {id, title: 'پروژه جدید', output: `outputs/${id}`};
+    activeProject = {
+        id,
+        title: 'پروژه جدید',
+        doc_title: 'پروژه جدید',
+        output: 'outputs/پروژه جدید',
+        chunk_size: 1300,
+        single_chunk: false,
+        delay: 2,
+        model: 'Claude Sonnet 5.5',
+        effort: 'medium'
+    };
     fillProjectForm(activeProject);
     $('projTitle').focus();
 }
-function saveCurrentProject() {
-    return action(async () => {
-        if (!activeProject.id) throw new Error('ابتدا پروژه جدید بسازید.');
-        const chunkSize = Number($('projChunkSize').value), delay = Number($('projDelay').value);
-        if (!$('projTitle').value.trim() || !Number.isInteger(chunkSize) || chunkSize < 1 || !Number.isFinite(delay) || delay < 0) {
-            throw new Error('نام پروژه، اندازهٔ مثبت قطعه و تاخیر نامنفی را بررسی کنید.');
-        }
-        const project = {...activeProject, title: $('projTitle').value.trim(), doc_title: $('projDocTitle').value,
-            input: $('projInput').value, chunk_size: chunkSize, delay, model: $('projModel').value,
-            effort: $('projEffort').value, main_prompt: $('projMainPrompt').value, context_prompt: $('projContextPrompt').value};
-        const isNew = !allProjects.some(item => item.id === project.id);
+
+async function saveCurrentProject(silent = false) {
+    if (!activeProject || !activeProject.id) {
+        if (!silent) reportError(new Error('ابتدا پروژه جدید بسازید.'));
+        return;
+    }
+    const singleChunk = Boolean($('projSingleChunk')?.checked);
+    const chunkSize = singleChunk ? 1000000 : (Number($('projChunkSize')?.value) || 1300);
+    const delay = Number($('projDelay')?.value ?? 2);
+    const title = ($('projTitle')?.value || '').trim() || 'پروژه جدید';
+    const docTitle = ($('projDocTitle')?.value || '').trim() || title;
+    const safeTitle = sanitizeFilename(title);
+
+    if (!Number.isInteger(chunkSize) || chunkSize < 1 || !Number.isFinite(delay) || delay < 0) {
+        if (!silent) reportError(new Error('نام پروژه، اندازهٔ مثبت قطعه و تاخیر نامنفی را بررسی کنید.'));
+        return;
+    }
+
+    const project = {
+        ...activeProject,
+        title: title,
+        doc_title: docTitle,
+        output: `outputs/${safeTitle}`,
+        input: $('projInput')?.value || '',
+        chunk_size: chunkSize,
+        single_chunk: singleChunk,
+        delay,
+        model: $('projModel')?.value || 'Claude Sonnet 5.5',
+        effort: $('projEffort')?.value || 'medium',
+        main_prompt: $('projMainPrompt')?.value || '',
+        context_prompt: $('projContextPrompt')?.value || ''
+    };
+
+    const isNew = !allProjects.some(item => item.id === project.id);
+    activeProject = project;
+
+    const execute = async () => {
         await post('/api/projects/save', {project});
         if (isNew) await post('/api/projects/switch', {id: project.id});
         projectVersion++;
-        currentStatus = {};
-        await loadProjects();
-        appendLog('success', 'تنظیمات پروژه ذخیره شد.', new Date().toLocaleTimeString('fa-IR'));
-    });
+        if (!silent) {
+            appendLog('success', `تنظیمات پروژه «${title}» ذخیره شد.`, new Date().toLocaleTimeString('fa-IR'));
+        }
+        const ind = $('saveStatusIndicator');
+        if (ind) {
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 2000);
+        }
+    };
+
+    if (silent) {
+        try {
+            await execute();
+        } catch (e) {
+            console.warn('Auto-save error:', e);
+        }
+    } else {
+        return action(execute);
+    }
 }
 function readFile(file, binary) {
     return new Promise((resolve, reject) => {
@@ -444,6 +557,13 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('label.form-label').forEach(label => {
         const control = label.parentElement.querySelector('input, select, textarea');
         if (control?.id) label.htmlFor = control.id;
+    });
+    ['projTitle', 'projDocTitle', 'projInput', 'projChunkSize', 'projDelay', 'projModel', 'projEffort', 'projMainPrompt', 'projContextPrompt'].forEach(id => {
+        const el = $(id);
+        if (el) {
+            el.addEventListener('input', triggerAutoSave);
+            el.addEventListener('change', triggerAutoSave);
+        }
     });
     document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeChunkModal(); closeBulkKeysModal(); } });
     if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('/sw.js').catch(() => {});

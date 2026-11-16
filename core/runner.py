@@ -8,6 +8,7 @@
 - ذخیره آنی خروجی‌ها در صورت اتمام هر قطعه
 """
 import os
+import re
 import copy
 import math
 import threading
@@ -51,8 +52,13 @@ class Runner:
         self.current_chunk_idx = None
         self.current_streaming_text = ""
 
-        out_path = project.get("output") or os.path.join(base_dir, "outputs", "output")
-        if not os.path.isabs(out_path):
+        # Calculate clean, predictable output filename matching project title
+        title = (project.get("title") or project.get("doc_title") or "").strip()
+        safe_title = re.sub(r'[\\/*?:"<>|]', '_', title).strip() or "جزوه"
+        out_path = (project.get("output") or "").strip()
+        if not out_path or "project-" in out_path or re.match(r"^outputs/[0-9a-f]{12,64}$", out_path):
+            out_path = os.path.join(base_dir, "outputs", safe_title)
+        elif not os.path.isabs(out_path):
             out_path = os.path.join(base_dir, out_path)
         self.output_base = out_path
         self.ledger_path = self.output_base + ".mixledger.db"
@@ -90,14 +96,15 @@ class Runner:
         if not os.path.isabs(inp):
             inp = os.path.join(self.base_dir, inp)
         inp = os.path.abspath(inp)
-        chunk_size = int(self.project.get("chunk_size", 1800))
+        chunk_size = int(self.project.get("chunk_size", 1300))
+        single_chunk = bool(self.project.get("single_chunk", False))
         if chunk_size <= 0:
             raise ValueError("chunk_size must be positive")
-        chunks, meta = build_chunks_from_source(inp, chunk_size=chunk_size)
+        chunks, meta = build_chunks_from_source(inp, chunk_size=chunk_size, single_chunk=single_chunk)
         # Rendering titles/delays can change without invalidating paid content.
         meta["generation"] = {k: self.project.get(k) for k in (
             "id", "main_prompt", "context_prompt", "enable_context", "context_mode",
-            "model", "effort", "max_tokens")}
+            "model", "effort", "max_tokens", "single_chunk")}
         self.ledger.recover_claimed()
         archive = self.ledger.init_chunks(chunks, meta)
         if archive:
@@ -168,7 +175,10 @@ class Runner:
                 send_bale_message(tok, cid, f"🎉 پروژه «{self.project.get('title')}» با موفقیت تکمیل شد!\nفایل‌های جزوه تولید شدند.")
                 docx_path = self.output_base + ".docx"
                 if os.path.exists(docx_path):
-                    send_bale_document(tok, cid, docx_path, caption=f"فایل Word جزوه: {self.project.get('title')}")
+                    send_bale_document(tok, cid, docx_path, caption=f"📄 فایل Word جزوه: {self.project.get('title')}")
+                html_path = self.output_base + ".html"
+                if os.path.exists(html_path):
+                    send_bale_document(tok, cid, html_path, caption=f"🌐 کتابخوان HTML جزوه: {self.project.get('title')}")
         except Exception:
             pass
 
